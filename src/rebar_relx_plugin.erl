@@ -29,7 +29,7 @@
 %%%  These have sane defaults but can be specified by the user.
 -module(rebar_relx_plugin).
 
--export([release/2, tar/2]).
+-export([release/2, relup/2, tar/2]).
 
 %%============================================================================
 %% API
@@ -41,6 +41,15 @@ release(Config, _AppFile) ->
             run_on_base_dir(release, Config);
         false ->
             rebar_utils:abort("Rebar version is to old to run the relx plugin", [])
+    end.
+
+-spec relup/2 :: (term(), file:path()) -> ok | no_return().
+relup(Config, _AppFile) ->
+    case new_enough_rebar() of
+        true ->
+            run_on_base_dir(relup, Config);
+        false ->
+            rebar_utils:abort("Rebar version is too old to run the relx plugin", [])
     end.
 
 -spec tar/2 :: (term(), file:path()) -> ok | no_return().
@@ -60,7 +69,7 @@ new_enough_rebar() ->
     Exports = rebar_utils:module_info(exports),
     lists:member({processing_base_dir, 1}, Exports).
 
--spec run_on_base_dir(release | tar, term()) -> ok | no_return().
+-spec run_on_base_dir(release | relup | tar, term()) -> ok | no_return().
 run_on_base_dir(Command, Config) ->
     case rebar_utils:processing_base_dir(Config) of
         true ->
@@ -69,7 +78,7 @@ run_on_base_dir(Command, Config) ->
             ok
    end.
 
--spec check_for_relx_config(release | tar, term()) -> ok | no_return().
+-spec check_for_relx_config(release | relup | tar, term()) -> ok | no_return().
 check_for_relx_config(Command, Config) ->
     CurDir = filename:absname(rebar_utils:get_cwd()),
     RelxFile = filename:join(CurDir, "relx.config"),
@@ -82,9 +91,10 @@ check_for_relx_config(Command, Config) ->
 
 -spec get_command(release | tar) -> string().
 get_command(release) -> "release";
+get_command(relup) -> "relup";
 get_command(tar) -> "tar".
 
--spec do(release | tar, term(), file:path()) -> ok | no_return().
+-spec do(release | relup | tar, term(), file:path()) -> ok | no_return().
 do(Command, Config, RelxFile) ->
     LibDirs = rebar_config:get_list(Config, relx_libdirs, []),
     LogLevel = get_log_level(Config),
